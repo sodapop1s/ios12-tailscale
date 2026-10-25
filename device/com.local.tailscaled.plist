@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.local.tailscaled</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/var/root/ts/tailscaled</string>
+        <string>--tun=userspace-networking</string>
+        <string>--state=/var/root/ts/tailscaled.state</string>
+        <string>--socket=/var/root/ts/tailscaled.sock</string>
+        <string>--socks5-server=localhost:1055</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Go's signal-based preemption wedges the runtime on iOS 12; see docs/FINDINGS.md -->
+        <key>GODEBUG</key>
+        <string>asyncpreemptoff=1</string>
+    </dict>
+    <key>POSIXSpawnType</key>
+    <string>Interactive</string>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>ExecuteAllowed</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/var/root/ts</string>
+    <key>StandardOutPath</key>
+    <string>/var/root/ts/tailscaled.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/root/ts/tailscaled.out.log</string>
+</dict>
+</plist>
