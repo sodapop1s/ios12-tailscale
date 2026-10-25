@@ -11,7 +11,7 @@ What it does (each step is printed):
   2. signs them ON THE PHONE with SHA-1+SHA-256 hashes, ad-hoc flag and the entitlements
      copied from /usr/bin/uname (a signature from a computer's ldid, or SHA-256 only, is killed)
   3. installs /usr/bin/tailscale (wrapper) and the launch job plist
-  4. backs up and patches Apple's jetsam table (needs a reboot to take effect)
+  4. backs up and patches Apple's jetsam table (asks first; needs a reboot to take effect)
 It does NOT start anything; see README for first start and `tailscale up`.
 """
 import argparse, os, shutil, subprocess, sys, tempfile
@@ -27,6 +27,7 @@ def main():
     ap.add_argument("--key")
     ap.add_argument("--model", default="N61", help="jetsam table suffix (N61 = iPhone 6)")
     ap.add_argument("--dry-run", action="store_true", help="print the steps, change nothing")
+    ap.add_argument("--yes", action="store_true", help="do not ask before editing Apple's jetsam table")
     a = ap.parse_args()
 
     ssh_opts = ["-p", a.port, "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no"]
@@ -50,6 +51,12 @@ def main():
             sys.exit(f"{f} missing - run scripts/build.py first")
 
     jet = f"/System/Library/LaunchDaemons/com.apple.jetsamproperties.{a.model}.plist"
+    if not a.dry_run and not a.yes:
+        print(f"This will EDIT AN APPLE SYSTEM FILE on the phone:\n  {jet}\n"
+              "It adds one entry raising the memory limit of the Tailscale launchd job (default ~6 MB -> 300 MB).\n"
+              "A backup is kept at /var/root/ts/. Nothing else in the file changes.")
+        if input("Type 'yes' to continue: ").strip().lower() != "yes":
+            sys.exit("aborted; nothing was changed")
     ssh("which ldid >/dev/null || { echo 'ldid missing: apt install ldid'; exit 1; }")
     ssh("mkdir -p /var/root/ts")
     scp_to([os.path.join(ROOT, "out/tailscaled"), os.path.join(ROOT, "out/tailscale")], "/var/root/ts/")

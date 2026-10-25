@@ -13,6 +13,10 @@ app needs a much newer iOS and can't be installed on this phone.
 This repo is the notes, patches and scripts from getting that working. It was done on one phone, so read
 [Status](#status) before trusting it.
 
+> **Heads-up: this edits a system file.** To keep the daemon alive under launchd, the installer adds one line to
+> Apple's per-daemon memory-limit table (`/System/Library/LaunchDaemons/com.apple.jetsamproperties.<MODEL>.plist`).
+> See [What this changes on your phone](#what-this-changes-on-your-phone) before you run it.
+
 ## Status
 
 Tested on: **iPhone 6 (iPhone7,2, A8), iOS 12.0.1, checkra1n 0.12.4, Procursus bootstrap via odysseyra1n,
@@ -56,6 +60,27 @@ Every one of these cost hours; the details and evidence are in [`docs/FINDINGS.m
    Apple's `com.apple.jetsamproperties.<MODEL>.plist` (a reboot is needed). Keys in the job's own plist did nothing.
 7. **Re-jailbreaking:** after bootstrapping, checkra1n's normal auto-boot kept producing a stock boot.
    Booting to the pongoOS shell (`checkra1n -p`) and then sending `bootx` worked. The cause is unknown.
+
+## What this changes on your phone
+
+Everything the installer and scripts modify, so nothing is a surprise:
+
+| What | Where | Why | Undo |
+|---|---|---|---|
+| Tailscale binaries, state, logs | `/var/root/ts/` | the program itself | delete the folder |
+| `tailscale` wrapper script | `/usr/bin/tailscale` | uses the right socket and runtime setting | delete the file |
+| launchd job | `/Library/LaunchDaemons/com.local.tailscaled.plist` | start Tailscale at boot | `launchctl unload` and delete |
+| **Apple's memory-limit table** | `/System/Library/LaunchDaemons/com.apple.jetsamproperties.<MODEL>.plist` | launchd jobs get a ~6 MB limit and Tailscale is killed; this adds **one entry** for our job (300 MB) | copy the backup `/var/root/ts/jetsam.<MODEL>.ORIGINAL.plist` back over it, reboot |
+
+What the memory-table edit is **not**: it does not touch RAM contents or the kernel. It changes one number in a
+configuration table that tells iOS how much memory a particular daemon may use. The installer asks you to type
+`yes` before doing it (`--yes` skips the question; `--dry-run` shows every step without changing anything), and
+`scripts/jetsam_patch.py` refuses to write the file unless the only difference from the original is that one entry.
+It is a change to an Apple system file on a jailbroken device, so do it deliberately. The change only takes effect
+after a reboot, and a semi-tethered phone has to be re-jailbroken after a reboot (see below).
+
+(Separately, checkra1n itself patches the iOS kernel in memory each time it boots the phone. That is what a
+jailbreak is, and it is not done by anything in this repo.)
 
 ## Quick start
 
