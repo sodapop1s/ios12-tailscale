@@ -26,10 +26,11 @@ Linux (NixOS) host.**
 |---|---|
 | Tailscale **1.68.2** built with **Go 1.22.12** runs on the phone and joins a tailnet | works; phone showed online, pinged at 10-15 ms, direct (no relay) |
 | Other tailnet machines can SSH to the phone's own `sshd` over the tailnet | observed (userspace mode forwards inbound connections to localhost) |
-| launchd starts `tailscaled` at boot with no manual step | **verified once** (one full reboot cycle) |
-| `scripts/rejailbreak.py` re-jailbreaks after a reboot | **worked once** end-to-end (took two DFU attempts; the first hit the usual exploit failure) |
+| launchd starts `tailscaled` at boot with no manual step | **verified over two reboot cycles** (reboot, re-jailbreak, daemon back by itself, no memory kills) |
+| `scripts/rejailbreak.py` re-jailbreaks after a reboot | **worked twice** end-to-end (on the first run it took two DFU attempts; the exploit step fails now and then, see below) |
 | `scripts/build.py` produces binaries that run | yes: its output was copied to the phone, signed, and run |
 | `scripts/install_on_phone.py` | the steps were each done by hand on the phone; the script itself was only **dry-run tested** |
+| `scripts/jetsam_patch.py` handles several launchd jobs | yes: a second entry was added to an already-patched table, and only that entry changed |
 
 **Not tested:** other iPhones / iOS versions, macOS or Windows hosts, Go or Tailscale versions other than the
 pair above (newer ones failed, see `docs/FINDINGS.md`), long-term stability, Tailscale features other than
@@ -37,6 +38,12 @@ joining and routing.
 
 This is an unofficial build. Tailscale does not support it. Use at your own risk, and never run any
 restore/erase/update command on a phone with data you care about (see [Safety](#safety)).
+
+## Used by
+
+[`ios12-sensor-node`](https://github.com/sodapop1s/ios12-sensor-node) builds on this: the same phone streams its
+sensors (motion, pressure, light, temperatures, power, sound level) over MQTT through the Tailscale proxy set up here.
+It runs its own launchd job with its own memory-limit entry (`jetsam_patch.py --label com.local.sensors --mb 100`).
 
 ## What you get
 
